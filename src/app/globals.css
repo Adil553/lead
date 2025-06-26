@@ -149,7 +149,7 @@ input[type="number"] {
 }
 /* Firefox */
 * {
-  scrollbar-width: thin;
+  scrollbar-width: none;
   scrollbar-color: var(--muted-foreground) var(--card);
 }
 

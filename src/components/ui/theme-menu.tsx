@@ -16,7 +16,7 @@ export function ModeToggle() {
   const { setTheme, theme, systemTheme } = useTheme();
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild className="border-none">
         <Button variant="outline" size="sm">
           {(systemTheme === "dark" && theme === "system") ||
           theme === "dark" ? (

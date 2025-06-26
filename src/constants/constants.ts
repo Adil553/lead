@@ -1,6 +1,4 @@
-import { User } from "@/utils/types";
-
-export const nav_headers = (user: User | null) => [
+export const nav_headers = () => [
   {
     name: "Home",
     href: "/",
@@ -15,22 +13,6 @@ export const nav_headers = (user: User | null) => [
     name: "Contact",
     href: "/contact",
     condition: true,
-  },
-  {
-    name: "Sign in",
-    href: "/auth/signin",
-    condition: !user,
-  },
-  {
-    name: "Sign up",
-    href: "/auth/signup",
-    condition: !user,
-  },
-  {
-    name: "Sign out",
-    href: "",
-    condition: user,
-    action: true,
   },
 ];
 
