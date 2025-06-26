@@ -29,8 +29,8 @@ export async function POST(req: Request) {
 - Default to the city/region if address parsing fails.
 
 📝 Output:
-Return a single JSON array of 8–12 objects, each containing:
-- fullName: string (real name or showroom name)
+Return a single JSON array of 8-12 objects, each containing:
+- fullName: string (real name or showroom name make sure showroom data is not fake)
 - phone: string (real or "N/A" if unavailable)
 - email: string (real, no placeholders like @example.com; use "N/A" if unavailable)
 - interest: string (comma-separated, e.g., "${make} ${model}, ${cc}cc, ${city}")
@@ -43,7 +43,7 @@ Return a single JSON array of 8–12 objects, each containing:
 - Ensure leads are relevant to the vehicle (make, model, cc) and location.
     `;
 
-  console.log(prompt);
+  // console.log(prompt);
   try {
     const response = await mistral.chat.complete({
       model: "mistral-large-2411",
