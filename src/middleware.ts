@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { USER_ROLE } from "./constants/constants";
+// import type { NextRequest } from "next/server";
+// import { USER_ROLE } from "./constants/constants";
 
-const publicRoutes = ["/", "/forgot-password"];
+// const publicRoutes = ["/", "/forgot-password"];
 
-const authRoutes = [
-  "/auth/signin",
-  "/auth/signup",
-  "/auth/verify",
-  "/auth/forgot",
-];
+// const authRoutes = [
+//   "/auth/signin",
+//   "/auth/signup",
+//   "/auth/verify",
+//   "/auth/forgot",
+// ];
 
-export function middleware(request: NextRequest) {
+export function middleware() {
   //   const { pathname } = request.nextUrl;
   //   const userCookie = request.cookies.get("user");
 
