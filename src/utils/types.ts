@@ -65,8 +65,10 @@ export interface COLLAPSIBLE_REF {
 export type LeadRequestBody = {
   make: string;
   model: string;
-  price: string;
-  cc: string;
+  priceMin: string;
+  priceMax: string;
+  ccMin: string;
+  ccMax: string;
   address: string;
   city: string;
   latitude: number;

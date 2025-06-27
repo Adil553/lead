@@ -10,6 +10,7 @@ import { Inter } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 import { LocationProvider } from "@/context/location-context";
+import Script from "next/script";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,6 +26,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.className}>
+      <Script
+        src="https://js.puter.com/v2/"
+        strategy="afterInteractive" // ensures it loads only on client side
+      />
       <body suppressHydrationWarning>
         <ReactQueryProvider>
           <LocationProvider>

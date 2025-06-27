@@ -4,8 +4,18 @@ import { NextResponse } from "next/server";
 const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY! });
 
 export async function POST(req: Request) {
-  const { make, model, price, cc, address, latitude, longitude, city } =
-    await req.json();
+  const {
+    make,
+    model,
+    priceMin,
+    priceMax,
+    ccMin,
+    ccMax,
+    address,
+    latitude,
+    longitude,
+    city,
+  } = await req.json();
 
   const prompt = `
     You are a vehicle sales assistant with access to a web_search tool and geolocation services.
@@ -13,8 +23,10 @@ export async function POST(req: Request) {
 🚗 Vehicle Listing:
 - Make: ${make}
 - Model: ${model}
-- Price: ${price}
-- Engine CC: ${cc}
+- Min Price: ${priceMin}
+- Max Price: ${priceMax}
+- Engine Min CC: ${ccMin}
+- Engine Max CC: ${ccMax}
 - Address: ${address}
 - Location: ${latitude}, ${longitude}
 
@@ -33,7 +45,7 @@ Return a single JSON array of 8-12 objects, each containing:
 - fullName: string (real name or showroom name make sure showroom data is not fake)
 - phone: string (real or "N/A" if unavailable)
 - email: string (real, no placeholders like @example.com; use "N/A" if unavailable)
-- interest: string (comma-separated, e.g., "${make} ${model}, ${cc}cc, ${city}")
+- interest: string (comma-separated, e.g., "${make} ${model}, ${ccMin}cc,${ccMax}cc, ${city}")
 - isShowroom: boolean (true for showrooms, false for individuals)
 
 ⚠️ Rules:
