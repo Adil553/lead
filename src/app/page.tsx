@@ -110,12 +110,12 @@ export default function Home() {
           <h1 className="text-4xl  font-bold text-foreground mb-2 text-balance">
             Instantly Generate AI-Powered Leads
           </h1>
-          <p className="text-sm text-foreground mb-2 max-w-full mx-auto text-balance">
+          {/* <p className="text-sm text-foreground mb-2 max-w-full mx-auto text-balance">
             Submit your information and let our AI match you with a curated list
             of potential users or leads tailored to your needs. Fill out the
             form below to get started and receive high-quality connections
             generated just for you.
-          </p>
+          </p> */}
           <Card className="bg-card/80">
             {/* <CardHeader>
               <CardTitle>Vehicle Information</CardTitle>
@@ -126,7 +126,7 @@ export default function Home() {
                   <div className="my-2">
                     <SearchBar
                       onSearch={setSearch}
-                      placeholder="Search by name, email, or phone"
+                      placeholder="Search by name, email, or phone, or ask AI..."
                       disabled={isPending}
                       isLoading={isPending}
                     />
