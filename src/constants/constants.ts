@@ -110,3 +110,16 @@ export const COMPANY_NAME = "Mealz N Dealz, Powered By Blazor Technologies Inc";
 export const MAX_PRICE = 90000;
 export const MIN_PRICE = 1;
 export const MAX_NOTE = 200;
+export const defaultEmailWords = [
+  "@example.com",
+  "test",
+  "dummy",
+  "abc",
+  "xyz",
+  "sample",
+  "lorem",
+  "unknown",
+  "null",
+];
+export const defaultContactWords = ["1234567890", "000", "test"];
+export const defaultNameWords = ["test", "unknown", "sample"];

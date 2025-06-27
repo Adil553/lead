@@ -1,4 +1,5 @@
 import { API_URL } from "@/services/apiClient";
+import axios from "axios";
 import { clsx, type ClassValue } from "clsx";
 import moment, { Moment } from "moment";
 import { twMerge } from "tailwind-merge";
@@ -142,4 +143,33 @@ export function getColorByLuminance(hex: string): string {
 export function hasExactlyOneSpace(searchQuery: string): boolean {
   // Match all spaces and check if there's exactly one
   return searchQuery.includes(" ");
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function sendMessage(data: any) {
+  const config = {
+    method: "post",
+    url: `https://graph.facebook.com/${process.env.VERSION}/${process.env.PHONE_NUMBER_ID}/messages`,
+    headers: {
+      Authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    data: data,
+  };
+
+  return axios(config);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function getTextMessageInput(recipient: any, text: any) {
+  return {
+    messaging_product: "whatsapp",
+    preview_url: false,
+    recipient_type: "individual",
+    to: recipient,
+    type: "text",
+    text: {
+      body: text,
+    },
+  };
 }

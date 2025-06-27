@@ -63,16 +63,26 @@ export interface COLLAPSIBLE_REF {
 // types/RestaurantFilters.ts
 
 export type LeadRequestBody = {
-  make: string;
-  model: string;
-  priceMin: string;
-  priceMax: string;
-  ccMin: string;
-  ccMax: string;
-  address: string;
-  city: string;
-  latitude: number;
-  longitude: number;
+  make?: string;
+  model?: string;
+  priceMin?: string;
+  priceMax?: string;
+  price?: string;
+  modelMin?: string;
+  modelMax?: string;
+  cc?: string;
+  negotiable?: number;
+  mode?: string;
+  ccMin?: string;
+  ccMax?: string;
+  address?: string;
+  city?: string;
+  query?: string;
+  nameWords?: string[];
+  emailWords?: string[];
+  contactWords?: string[];
+  latitude?: number;
+  longitude?: number;
 };
 
 export type Invites = {
@@ -84,4 +94,12 @@ export type Foodies = {
   phone: string;
   email: string;
   interest: string;
+  matchedPercentage: number;
+  color: string;
+  price?: string;
+  make?: string;
+  model?: string;
+  modelYear?: number;
+  cc?: number;
+  location?: string;
 };

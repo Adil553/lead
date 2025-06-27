@@ -1,11 +1,10 @@
 "use client";
 import { useLocation } from "@/context/location-context";
-import { useGenerateLead } from "@/hooks/useMistralAI";
 import { LeadRequestBody } from "@/utils/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
+import { useImperativeHandle, useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import {
@@ -18,15 +17,21 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 import AddressSearch from "./address-search";
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
-import Foodie from "./foodie";
-import { SearchBar } from "../ui/search-bar";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Label } from "../ui/label";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../ui/select";
 
 const currentYear = new Date().getFullYear();
 
 const formSchema = z
   .object({
+    mode: z.enum(["buy", "sell"]).default("sell"),
     make: z
       .string()
       .min(3, "Please enter the vehicle make (at least 3 characters).")
@@ -34,207 +39,364 @@ const formSchema = z
         /^[a-zA-Z0-9 ]+$/,
         "Make can only contain letters, numbers, and spaces."
       ),
-    model: z
-      .string()
-      .min(1, "Please enter the vehicle model.")
-      .regex(/^[0-9]{4}$/, "Model year must be a 4-digit number.")
-      .refine(
-        (val) => {
-          const year = Number(val);
-          return year <= currentYear;
-        },
-        {
-          message: `Model year cannot be greater than ${currentYear}.`,
-        }
-      ),
-    priceMin: z
-      .string()
-      .nonempty("Please enter the minimum price.")
-      .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-        message: "Minimum price must be a positive number.",
-      }),
-    priceMax: z
-      .string()
-      .nonempty("Please enter the maximum price.")
-      .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-        message: "Maximum price must be a positive number.",
-      }),
-    ccMin: z
-      .string()
-      .nonempty("Please enter the minimum engine CC.")
-      .max(4, "CC must be at most 4 digits.")
-      .regex(/^\d+$/, "CC must be a number."),
-    ccMax: z
-      .string()
-      .nonempty("Please enter the maximum engine CC.")
-      .max(4, "CC must be at most 4 digits.")
-      .regex(/^\d+$/, "CC must be a number."),
+    model: z.string().optional(),
+    modelMin: z.string().optional(),
+    modelMax: z.string().optional(),
+    price: z.string().optional(),
+    priceMin: z.string().optional(),
+    priceMax: z.string().optional(),
+    cc: z.string().optional(),
+    ccMin: z.string().optional(),
+    ccMax: z.string().optional(),
+    negotiable: z.number().optional(),
     area: z
       .string()
       .min(5, "Please enter a valid area or address (at least 5 characters)."),
   })
-  .refine((data) => Number(data.priceMin) <= Number(data.priceMax), {
-    message: "Minimum price cannot be greater than maximum price.",
-    path: ["priceMax"],
-  })
-  .refine((data) => Number(data.ccMin) <= Number(data.ccMax), {
-    message: "Minimum CC cannot be greater than maximum CC.",
-    path: ["ccMax"],
+  .superRefine((data, ctx) => {
+    if (data.mode === "buy") {
+      // Price range validation
+      if (!data.priceMin || !data.priceMax) {
+        ctx.addIssue({
+          path: ["priceMin"],
+          message: "Enter price range",
+          code: "custom",
+        });
+      } else {
+        const min = Number(data.priceMin);
+        const max = Number(data.priceMax);
+        if (isNaN(min) || isNaN(max) || min < 0 || max < 0) {
+          ctx.addIssue({
+            path: ["priceMin"],
+            message: "Price must be a positive number",
+            code: "custom",
+          });
+        } else if (min > max) {
+          ctx.addIssue({
+            path: ["priceMin"],
+            message: "Min price cannot be greater than max price",
+            code: "custom",
+          });
+          ctx.addIssue({
+            path: ["priceMax"],
+            message: "Max price cannot be less than min price",
+            code: "custom",
+          });
+        }
+      }
+      // CC range validation
+      if (!data.ccMin || !data.ccMax) {
+        ctx.addIssue({
+          path: ["ccMin"],
+          message: "Enter CC range",
+          code: "custom",
+        });
+      } else {
+        const min = Number(data.ccMin);
+        const max = Number(data.ccMax);
+        if (isNaN(min) || isNaN(max) || min < 0 || max < 0) {
+          ctx.addIssue({
+            path: ["ccMin"],
+            message: "CC must be a positive number",
+            code: "custom",
+          });
+        } else if (min > max) {
+          ctx.addIssue({
+            path: ["ccMin"],
+            message: "Min CC cannot be greater than max CC",
+            code: "custom",
+          });
+          ctx.addIssue({
+            path: ["ccMax"],
+            message: "Max CC cannot be less than min CC",
+            code: "custom",
+          });
+        }
+      }
+      // Model year range validation
+      if (!data.modelMin || !data.modelMax) {
+        ctx.addIssue({
+          path: ["modelMin"],
+          message: "Enter model year range",
+          code: "custom",
+        });
+      } else {
+        const min = Number(data.modelMin);
+        const max = Number(data.modelMax);
+        if (isNaN(min) || isNaN(max)) {
+          ctx.addIssue({
+            path: ["modelMin"],
+            message: "Model years must be numbers",
+            code: "custom",
+          });
+        } else {
+          if (min > max) {
+            ctx.addIssue({
+              path: ["modelMin"],
+              message: "Min year cannot be greater than max year",
+              code: "custom",
+            });
+            ctx.addIssue({
+              path: ["modelMax"],
+              message: "Max year cannot be less than min year",
+              code: "custom",
+            });
+          }
+          if (min > currentYear) {
+            ctx.addIssue({
+              path: ["modelMin"],
+              message: `Min year cannot be greater than ${currentYear}`,
+              code: "custom",
+            });
+          }
+          if (max > currentYear) {
+            ctx.addIssue({
+              path: ["modelMax"],
+              message: `Max year cannot be greater than ${currentYear}`,
+              code: "custom",
+            });
+          }
+        }
+      }
+    } else {
+      if (!data.price) {
+        ctx.addIssue({
+          path: ["price"],
+          message: "Enter price",
+          code: "custom",
+        });
+      }
+      if (!data.cc) {
+        ctx.addIssue({ path: ["cc"], message: "Enter CC", code: "custom" });
+      }
+      if (typeof data.negotiable !== "number") {
+        ctx.addIssue({
+          path: ["negotiable"],
+          message: "Set negotiable percentage",
+          code: "custom",
+        });
+      }
+      if (!data.model) {
+        ctx.addIssue({
+          path: ["model"],
+          message: "Enter model year",
+          code: "custom",
+        });
+      } else {
+        const modelYear = Number(data.model);
+        if (isNaN(modelYear)) {
+          ctx.addIssue({
+            path: ["model"],
+            message: "Model year must be a number",
+            code: "custom",
+          });
+        } else if (modelYear > currentYear) {
+          ctx.addIssue({
+            path: ["model"],
+            message: `Model year cannot be greater than ${currentYear}`,
+            code: "custom",
+          });
+        }
+      }
+    }
   });
 
-const LeadForm = () => {
-  const [showLeads, setShowLeads] = useState(false);
-  const [search, setSearch] = useState("");
+type LeadFormProps = {
+  onGenerateLead: (leadBody: LeadRequestBody) => void;
+  isPending: boolean;
+  formRef?: React.MutableRefObject<{
+    getAllFormValues: () => LeadRequestBody;
+  } | null>;
+};
 
+const LeadForm: React.FC<LeadFormProps> = ({
+  onGenerateLead,
+  isPending,
+  formRef,
+}) => {
   const { selectedPosition } = useLocation();
-  const { mutate, isPending, data } = useGenerateLead();
+  const [mode, setMode] = useState<"buy" | "sell">("sell");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      mode: "sell",
       make: "",
       model: "",
+      modelMin: "",
+      modelMax: "",
+      price: "",
       priceMin: "",
       priceMax: "",
+      cc: "",
       ccMin: "",
       ccMax: "",
+      negotiable: 0,
       area: "",
     },
   });
 
+  // Expose getAllFormValues via the formRef prop
+  useImperativeHandle(formRef, () => ({
+    getAllFormValues: () => {
+      const extractAddress = form.getValues("area").split(", ");
+      const lastItem = extractAddress[extractAddress.length - 1] || "";
+      const mode = form.getValues("mode");
+      if (mode === "buy") {
+        return {
+          address: form.getValues("area"),
+          make: form.getValues("make"),
+          priceMin: form.getValues("priceMin"),
+          priceMax: form.getValues("priceMax"),
+          ccMin: form.getValues("ccMin"),
+          ccMax: form.getValues("ccMax"),
+          modelMin: form.getValues("modelMin"),
+          modelMax: form.getValues("modelMax"),
+          latitude: selectedPosition?.[0] ?? 0,
+          longitude: selectedPosition?.[1] ?? 0,
+          city: lastItem,
+          query: "",
+          mode,
+        };
+      } else {
+        return {
+          address: form.getValues("area"),
+          make: form.getValues("make"),
+          price: form.getValues("price"),
+          cc: form.getValues("cc"),
+          model: form.getValues("model"),
+          negotiable: form.getValues("negotiable"),
+          latitude: selectedPosition?.[0] ?? 0,
+          longitude: selectedPosition?.[1] ?? 0,
+          city: lastItem,
+          query: "",
+          mode,
+        };
+      }
+    },
+  }));
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     const extractAddress = values.area.split(", ");
-    const lastItem = extractAddress[extractAddress.length - 1];
-    const leadBody: LeadRequestBody = {
-      address: values.area,
-      make: values.make,
-      priceMin: values.priceMin,
-      priceMax: values.priceMax,
-      ccMin: values.ccMin,
-      ccMax: values.ccMax,
-      model: values.model,
-      latitude: selectedPosition?.[0] ?? 0,
-      longitude: selectedPosition?.[1] ?? 0,
-      city: lastItem,
-    };
-    // console.log({ leadBody });
-    mutate(leadBody, {
-      onSuccess: (res) => {
-        // console.log(res);
-        if (res && Array.isArray(res)) {
-          setShowLeads(true);
-        }
-      },
-      onError: (err) => {
-        console.log({ err });
-        toast.error(err.message);
-      },
-    });
+    const lastItem = extractAddress[extractAddress.length - 1] || "";
+    let leadBody: LeadRequestBody;
+    if (values.mode === "buy") {
+      leadBody = {
+        address: values.area,
+        make: values.make,
+        priceMin: values.priceMin ?? "",
+        priceMax: values.priceMax ?? "",
+        ccMin: values.ccMin ?? "",
+        ccMax: values.ccMax ?? "",
+        modelMin: values.modelMin ?? "",
+        modelMax: values.modelMax ?? "",
+        latitude: selectedPosition?.[0] ?? 0,
+        longitude: selectedPosition?.[1] ?? 0,
+        city: lastItem,
+        query: "",
+        mode: values.mode,
+      };
+    } else {
+      leadBody = {
+        address: values.area,
+        make: values.make,
+        price: values.price ?? "",
+        cc: values.cc ?? "",
+        model: values.model ?? "",
+        negotiable: values.negotiable ?? 0,
+        latitude: selectedPosition?.[0] ?? 0,
+        longitude: selectedPosition?.[1] ?? 0,
+        city: lastItem,
+        query: "",
+        mode: values.mode,
+      };
+    }
+    onGenerateLead(leadBody);
   }
-
-  //   const prompt = `
-  //   You are a vehicle sales assistant with access to a web_search tool and geolocation services.
-
-  // 🚗 Vehicle Listing:
-  // - Make: ${values.make}
-  // - Model: ${values.model}
-  // - Price: ${values.price}
-  // - Engine CC: ${values.cc}
-  // - Address: ${values.area}
-  // - Location: ${selectedPosition?.[0] ?? 0}, ${selectedPosition?.[1] ?? 0}
-
-  // 🎯 Task:
-  // 1. Use web_search to find real user leads (buyers/sellers) interested in similar vehicles.
-  // 2. Identify car showrooms/dealerships near the provided location that sell ${
-  //     values.make
-  //   } or similar vehicles.
-
-  // 📍 Location Priority:
-  // - Prioritize leads within 10km of the coordinates (${leadBody.latitude}, ${
-  //     leadBody.longitude
-  //   }) or the provided address (${values.area}).
-  // - If coordinates are missing, use a geocoding service to derive them from the address.
-  // - Extract the city from the address (e.g., Lahore) for broader matching if proximity yields insufficient results.
-  // - Default to the city/region if address parsing fails.
-
-  // 📝 Output:
-  // Return a single JSON array of 8-12 objects, each containing:
-  // - fullName: string (real name or showroom name make sure showroom data is not fake)
-  // - phone: string (real or "N/A" if unavailable)
-  // - email: string (real, no placeholders like @example.com; use "N/A" if unavailable)
-  // - interest: string (comma-separated, e.g., "${values.make} ${values.model}, ${
-  //     values.cc
-  //   }cc, ${leadBody.city}")
-  // - isShowroom: boolean (true for showrooms, false for individuals)
-
-  // ⚠️ Rules:
-  // - Source real leads from public platforms (e.g., social media, dealership websites).
-  // - Do not fabricate contact details; use "N/A" for missing data.
-  // - Return only a raw JSON array, no markdown, explanations, or additional text.
-  // - Ensure leads are relevant to the vehicle (make, model, cc) and location.
-  //   `;
 
   // Handler to update area/address in the form when selected from AddressSearch
   const handleAddressSelect = (address: string) => {
     form.setValue("area", address, { shouldValidate: true });
   };
-
-  // 3. Filter data based on search
-  const filteredData =
-    data && Array.isArray(data)
-      ? data.filter(
-          (foodie) =>
-            foodie.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-            foodie.email?.toLowerCase().includes(search.toLowerCase()) ||
-            foodie.phone?.toLowerCase().includes(search.toLowerCase())
-        )
-      : [];
-
+  // console.log(form.formState.errors);
   return (
     <>
-      <Dialog open={showLeads} onOpenChange={setShowLeads}>
-        <DialogContent className="max-w-2xl w-full gap-2 p-6 rounded-3xl bg-background border-0 shadow-lg shadow-card">
-          <DialogHeader className="flex-row items-center">
-            <DialogTitle>Leads For You By AI </DialogTitle>
-          </DialogHeader>
-          <div className="mb-2">
-            <SearchBar
-              onSearch={setSearch}
-              placeholder="Search by name, email, or phone"
-              disabled={isPending}
-            />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-2 max-h-[60dvh] overflow-y-scroll scrollbar-hide">
-            {filteredData.length > 0 ? (
-              filteredData.map((foodie, index) => (
-                <Foodie key={index} foodie={foodie} invitedList={[]} />
-              ))
-            ) : (
-              <div className="col-span-2 text-center text-muted-foreground">
-                No results found.
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-3 w-[100%]"
+          className="space-y-2 w-[100%] mt-3"
         >
-          {/* Make and Model in one row */}
-          <div className="flex gap-3">
-            <div className="flex-1">
+          {/* Buy/Sell radio group */}
+          <FormField
+            control={form.control}
+            name="mode"
+            render={({ field }) => (
+              <FormItem className="flex items-center justify-center">
+                <FormLabel>Mode</FormLabel>
+                <FormControl>
+                  <RadioGroup
+                    disabled={isPending}
+                    value={field.value}
+                    onValueChange={(val) => {
+                      field.onChange(val as "buy" | "sell");
+                      setMode(val as "buy" | "sell");
+                    }}
+                    orientation="vertical"
+                    className="flex"
+                  >
+                    <RadioGroupItem value="sell" id="r1" />
+                    <Label htmlFor="r1">Sell for me</Label>
+                    <RadioGroupItem value="buy" id="r2" />
+                    <Label htmlFor="r2">Buy for me</Label>
+                  </RadioGroup>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          {/* Make */}
+          <FormField
+            control={form.control}
+            name="make"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Make</FormLabel>
+                <FormControl>
+                  <Input disabled={isPending} placeholder="Make" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* Model */}
+          {mode === "buy" ? (
+            <div className="flex gap-2">
               <FormField
                 control={form.control}
-                name="make"
+                name="modelMin"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Make</FormLabel>
+                  <FormItem className="flex-1">
+                    <FormLabel>Model Year Min</FormLabel>
                     <FormControl>
                       <Input
                         disabled={isPending}
-                        placeholder="Make"
+                        placeholder="Min Year"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="modelMax"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Model Year Max</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={isPending}
+                        placeholder="Max Year"
                         {...field}
                       />
                     </FormControl>
@@ -243,29 +405,25 @@ const LeadForm = () => {
                 )}
               />
             </div>
-            <div className="flex-1">
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={isPending}
-                        placeholder="Model"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
-          {/* Price and CC in one row, each with min/max */}
-          <div className="flex gap-3">
-            <div className="flex-1">
+          ) : (
+            <FormField
+              control={form.control}
+              name="model"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Model Year</FormLabel>
+                  <FormControl>
+                    <Input disabled={isPending} placeholder="Year" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+          {/* Price and Negotiable in one row (sell mode only) */}
+          {mode === "buy" ? (
+            <>
+              {/* Price Range */}
               <div className="flex gap-2">
                 <FormField
                   control={form.control}
@@ -277,7 +435,6 @@ const LeadForm = () => {
                         <Input
                           disabled={isPending}
                           placeholder="Min"
-                          type="number"
                           {...field}
                         />
                       </FormControl>
@@ -295,7 +452,6 @@ const LeadForm = () => {
                         <Input
                           disabled={isPending}
                           placeholder="Max"
-                          type="number"
                           {...field}
                         />
                       </FormControl>
@@ -304,8 +460,7 @@ const LeadForm = () => {
                   )}
                 />
               </div>
-            </div>
-            <div className="flex-1">
+              {/* CC Range */}
               <div className="flex gap-2">
                 <FormField
                   control={form.control}
@@ -342,8 +497,80 @@ const LeadForm = () => {
                   )}
                 />
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              {/* Price and Negotiable in one row */}
+              <div className="flex gap-2">
+                <div className="flex-9/12">
+                  <FormField
+                    control={form.control}
+                    name="price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            disabled={isPending}
+                            placeholder="Price"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex-1/5">
+                  <FormField
+                    control={form.control}
+                    name="negotiable"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Negotiable (%)</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value ? String(field.value) : ""}
+                            onValueChange={(val) => field.onChange(Number(val))}
+                            disabled={isPending}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select negotiable %" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[5, 10, 15, 20, 25, 30].map((percent) => (
+                                <SelectItem
+                                  key={percent}
+                                  value={String(percent)}
+                                >
+                                  {percent}%
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              {/* CC (single) */}
+              <FormField
+                control={form.control}
+                name="cc"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CC</FormLabel>
+                    <FormControl>
+                      <Input disabled={isPending} placeholder="CC" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </>
+          )}
           {/* Area/Address as textarea */}
           <FormField
             control={form.control}
@@ -378,4 +605,5 @@ const LeadForm = () => {
     </>
   );
 };
+
 export default LeadForm;
