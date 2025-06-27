@@ -1,5 +1,6 @@
 import { LeadRequestBody } from "@/utils/types";
 import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
 
 export const useGenerateLead = () => {
   return useMutation({
@@ -13,6 +14,15 @@ export const useGenerateLead = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Note generation failed");
       return data.items;
+    },
+  });
+};
+
+export const useSendWhatsapp = () => {
+  return useMutation({
+    mutationFn: async (body: { text: string }) => {
+      const response = await axios.post("/api/send-whatsapp", body);
+      return response;
     },
   });
 };

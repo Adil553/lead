@@ -1,19 +1,25 @@
+import { useSendWhatsapp } from "@/hooks/useMistralAI";
 import { Foodies, Invites } from "@/utils/types";
-import { BadgePercent, Info, Mail, Phone } from "lucide-react";
-import React, { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { Card, CardContent } from "../ui/card";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import clsx from "clsx";
+import { BadgePercent, Info, Loader2, Mail, Phone } from "lucide-react";
+import React, { useState } from "react";
+import { toast } from "sonner";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Input } from "../ui/input";
-import { toast } from "sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 type FoodieProps = {
   foodie: Foodies;
   invitedList: Invites[] | [];
   isResend?: boolean;
+};
+
+const isValidPhoneNumber = (phone: string) => {
+  // Allow optional "+" at the start, then 10-15 digits
+  return /^(\+?\d{10,15})$/.test(phone);
 };
 
 const Foodie: React.FC<FoodieProps> = ({
@@ -23,6 +29,9 @@ const Foodie: React.FC<FoodieProps> = ({
 }) => {
   const [showContact, setShowContact] = useState(false);
   const [contact, setContact] = useState("");
+  const [contactError, setContactError] = useState("");
+
+  const { mutate, isPending } = useSendWhatsapp();
   // const queryClient = useQueryClient();
 
   // const isPending = false;
@@ -104,6 +113,33 @@ const Foodie: React.FC<FoodieProps> = ({
     foodie?.fullName ??
     foodie?.make + " " + foodie?.model + " " + foodie?.modelYear;
 
+  const onSendMessage = () => {
+    let text = "";
+    if (foodie.make) {
+      text = `Hi! 👋
+
+I am interested in your ${foodie.make} ${foodie.model} (${foodie.modelYear}). Is it still available?`;
+    } else {
+      text = `Hi ${fullName}! 👋
+
+Would you be interested in buying a vehicle? Let me know if you're looking for something specific!`;
+    }
+    // console.log({ text });
+    mutate(
+      { text },
+      {
+        onSuccess: (res) => {
+          console.log(res);
+          setShowContact(false);
+          toast.success("message sent successfully");
+        },
+        onError: (err) => {
+          toast.error(err.message);
+        },
+      }
+    );
+  };
+
   return (
     <Card className="px-0 py-0 p-0 m-1 ring-1 ring-muted-foreground/30  rounded-2xl shadow-md border border-muted/30  hoverg-:shadow-lg transition-shadow duration-200 group ">
       <CardContent
@@ -117,13 +153,18 @@ const Foodie: React.FC<FoodieProps> = ({
             size="sm"
             // disabled={isPending || Boolean(isInvited)}
             // onClick={onInvite}
-            onClick={() => setShowContact(true)}
+            // onClick={() => setShowContact(true)}
+            onClick={onSendMessage}
             className={clsx(
               "absolute right-0 h-6 px-2 text-xs",
               "disabled:cursor-not-allowed disabled:pointer-events-auto"
             )}
           >
-            Send Message
+            {isPending ? (
+              <Loader2 className="animate-spin h-4 w-4" />
+            ) : (
+              "Send Message"
+            )}
           </Button>
         )}
         <Dialog open={showContact} onOpenChange={setShowContact}>
@@ -133,17 +174,31 @@ const Foodie: React.FC<FoodieProps> = ({
             </DialogHeader>
             <Input
               value={contact}
-              onChange={(e) => setContact(e.target.value)}
-              placeholder="Enter your contact"
-            />
-            <Button
-              disabled={!contact}
-              onClick={() => {
-                toast.success("message sent successfully!");
-                setShowContact(false);
+              onChange={(e) => {
+                const value = e.target.value;
+                setContact(value);
+                if (value && !isValidPhoneNumber(value)) {
+                  setContactError(
+                    "Please enter a valid WhatsApp number (e.g. 923337069742, 12 digits, no + or spaces)"
+                  );
+                } else {
+                  setContactError("");
+                }
               }}
+              placeholder="Enter your WhatsApp contact"
+            />
+            {contactError && (
+              <div className="text-xs text-red-500 mt-1">{contactError}</div>
+            )}
+            <Button
+              disabled={!contact || !!contactError}
+              onClick={onSendMessage}
             >
-              Send Message
+              {isPending ? (
+                <Loader2 className="animate-spin h-4 w-4" />
+              ) : (
+                "Send Message"
+              )}
             </Button>
           </DialogContent>
         </Dialog>

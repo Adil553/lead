@@ -7,12 +7,10 @@ export async function POST(req: Request) {
   if (req.method !== "POST") {
     return NextResponse.json({ error: "Method Not Allowed" });
   }
+  const { text } = await req.json();
 
   try {
-    const messageData = getTextMessageInput(
-      process.env.RECIPIENT_WAID,
-      "Welcome to the Movie Ticket Demo App for Next.js!"
-    );
+    const messageData = getTextMessageInput(process.env.RECIPIENT_WAID, text);
 
     await sendMessage(messageData);
 
