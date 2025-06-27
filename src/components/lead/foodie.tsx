@@ -115,14 +115,11 @@ const Foodie: React.FC<FoodieProps> = ({
 
   const onSendMessage = () => {
     let text = "";
+    const signature = `\n\n--\nCar Dealz Point\nweb: https://cardealzpoint.com/\ncontact: 923337069742`;
     if (foodie.make) {
-      text = `Hi! 👋
-
-I am interested in your ${foodie.make} ${foodie.model} (${foodie.modelYear}). Is it still available?`;
+      text = `Hi! 👋\n\nI am interested in your ${foodie.make} ${foodie.model} (${foodie.modelYear}). Is it still available?${signature}`;
     } else {
-      text = `Hi ${fullName}! 👋
-
-Would you be interested in buying a vehicle? Let me know if you're looking for something specific!`;
+      text = `Hi ${fullName}! 👋\n\nWould you be interested in buying a vehicle? Let me know if you're looking for something specific!${signature}`;
     }
     // console.log({ text });
     mutate(
