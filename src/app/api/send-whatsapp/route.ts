@@ -3,7 +3,7 @@
 import { getTextMessageInput, sendMessage } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
-export default async function POST(req: Request) {
+export async function POST(req: Request) {
   if (req.method !== "POST") {
     return NextResponse.json({ error: "Method Not Allowed" });
   }
